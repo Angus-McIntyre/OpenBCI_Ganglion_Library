@@ -16,6 +16,22 @@
 #include "OpenBCI_Ganglion_Library.h"
 #include <ota_bootloader.h>
 
+// Device Information
+BLEService DeviceInformationService("180A");
+BLECharacteristic ManufacturerNameCharacteristic("2A29", BLERead, "NRRH");
+BLECharacteristic ModelNumberCharacteristic("2A24", BLERead, "Impulse");
+BLECharacteristic HardwareRevCharacteristic("2A27", BLERead, "0.0.1");
+BLECharacteristic FirmwareRevCharacteristic("2A26", BLERead, "0.0.1");
+BLECharacteristic SoftwareRevCharacteristic("2A28", BLERead, "0.0.1");
+
+// Data Transfer Service
+BLEService packetService("FE84");
+BLECharacteristic dataCharacteristic("2d30c082f39f4ce6923f3484ea480596", BLERead | BLENotify);
+BLEByteCharacteristic controlCharacteristic("2d30c083f39f4ce6923f3484ea480596", BLEWrite | BLEWriteWithoutResponse);
+BLEByteCharacteristic disconnectCharacteristic("2d30c084f39f4ce6923f3484ea480596", BLEWrite | BLEWriteWithoutResponse);
+
+
+
 // CONSTRUCTOR
 OpenBCI_Ganglion::OpenBCI_Ganglion(){
   curSampleRate = SAMPLE_RATE_200;

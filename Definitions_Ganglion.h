@@ -4,7 +4,7 @@
 #ifndef _Definitions_Ganglion_h
 #define _Definitions_Ganglion_h
 
-#define LED 23
+#define LED 1 // Unused
 #define LED_DELAY_TIME 300
 #define RING_SIZE 101
 #define SERIAL_BUFFER_LENGTH  20
@@ -65,9 +65,9 @@
 #define DISABLE_2  0x00040000
 #define DISABLE_3  0x00080000
 
-#define MCP_SS  7   // MCP Slave Select on Simblee pin 13
-#define MCP_DRDY 8   // MCP DataReady on Simblee pin 8
-#define MCP_RST 20   // MCP Reset: active low
+#define MCP_SS 21
+#define MCP_DRDY 6
+#define MCP_RST 17
 
 #define MCP_ADD  0x40
 #define MCP_READ  0x01
@@ -123,13 +123,13 @@
  *  AD5621
  */
 #define DAC_MASK  0x3FFC
-#define SHUNT_SENSOR 6     // reads the current shunt sensor
-#define DAC_SS    19       // DAC slave select
-#define Z_TEST_1  30       // pin control for Z test channel 1
-#define Z_TEST_2  29       // pin control for Z test channel 2
-#define Z_TEST_3  28       // pin control for Z test channel 3
-#define Z_TEST_4  25       // pin control for Z test channel 4
-#define Z_TEST_REF  22     // pin control for Z test channel REF
+#define SHUNT_SENSOR 10    // reads the current shunt sensor
+#define DAC_SS    5       // DAC slave select
+#define Z_TEST_1  7       // pin control for Z test channel 1
+#define Z_TEST_2  9       // pin control for Z test channel 2
+#define Z_TEST_3  47      // Unused
+#define Z_TEST_4  48       // Unused
+#define Z_TEST_REF  8     // pin control for Z test channel REF
 // CONTROL BYTES
 #define DAC_EN    0x0000  // enables setting the DAC output 12 bit resolution
 #define DAC_1K    0x7000  // disables DAC with output tied 1K to GND
@@ -144,8 +144,8 @@
  * LIS2DH
  */
 
-#define LIS2DH_SS   10
-#define LIS_DRDY    13
+#define LIS2DH_SS   3
+#define LIS_DRDY    4
 
 #define READ_REG    0x80
 #define READ_MULTI    0x40
@@ -194,7 +194,7 @@
 /*
 * SD CARD
 */
-#define SD_SS 17
+#define SD_SS 38 // Unused
 
 /** Wifi Stuff */
 #define NUM_CHANNELS 4

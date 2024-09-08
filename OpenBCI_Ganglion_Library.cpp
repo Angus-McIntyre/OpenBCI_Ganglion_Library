@@ -57,16 +57,31 @@ void OpenBCI_Ganglion::initialize() {
   pinMode(LED, OUTPUT);
   digitalWrite(LED,LED_state);
 
-  makeUniqueId(); // construct the name and serial number for advertisement
-  SimbleeBLE_advdata = advdata;
-  SimbleeBLE_advdata_len = sizeof(advdata);
   if (useSerial) {
     Serial.begin(115200);
   } else {
-    Serial.begin(9600);
-    SimbleeBLE.advertisementData = "Ganglion";
-    SimbleeBLE.begin();
-    SimbleeBLE.txPowerLevel = +4;
+    BLE.begin();
+    BLE.setLocalName("Impulse");
+    packetService.addCharacteristic(dataCharacteristic);
+    packetService.addCharacteristic(controlCharacteristic);
+    packetService.addCharacteristic(disconnectCharacteristic);
+    BLE.addService(packetService);
+
+    DeviceInformationService.addCharacteristic(ManufacturerNameCharacteristic);
+    DeviceInformationService.addCharacteristic(ModelNumberCharacteristic);
+    DeviceInformationService.addCharacteristic(HardwareRevCharacteristic);
+    DeviceInformationService.addCharacteristic(FirmwareRevCharacteristic);
+    DeviceInformationService.addCharacteristic(SoftwareRevCharacteristic);
+    BLE.addService(DeviceInformationService);
+
+    BLE.setConnectionInterval(0x0006, 0x0006);
+    BLE.setAdvertisingInterval(1600); //1600 * 0.625 ms = 1s
+    BLE.advertise();
+
+    BLE.setEventHandler(BLEConnected, onConnect);
+    BLE.setEventHandler(BLEDisconnected, onDisconnect);
+    controlCharacteristic.setEventHandler(BLEWritten, onReceive);
+    
   }
   initSerialBuffer();
   startFromScratch(gain);
@@ -74,16 +89,7 @@ void OpenBCI_Ganglion::initialize() {
 }
 
 void OpenBCI_Ganglion::makeUniqueId() {
-  uint64_t id = getDeviceId();
-  String stringy =  String(getDeviceIdLow(), HEX);
-  advdata[16] = (uint8_t)stringy.charAt(0);
-  advdata[17] = (uint8_t)stringy.charAt(1);
-  advdata[18] = (uint8_t)stringy.charAt(2);
-  advdata[19] = (uint8_t)stringy.charAt(3);
-  SimbleeBLE.manufacturerName = "openbci.com";
-  SimbleeBLE.modelNumber = "Ganglion";
-  SimbleeBLE.hardwareRevision = "1.0.1";
-  SimbleeBLE.softwareRevision = "3.0.2";
+
 }
 
 void OpenBCI_Ganglion::blinkLED() {
@@ -332,7 +338,7 @@ void OpenBCI_Ganglion::sendCompressedPacket18() {
   }
   ringBufferLevel++;
   if (BLEconnected) {
-    SimbleeBLE.send(radioBuffer, 20);
+    dataCharacteristic.writeValue(radioBuffer, 20);
   }
 }
 
@@ -400,7 +406,7 @@ void OpenBCI_Ganglion::sendCompressedPacket19() {
   }
   ringBufferLevel++;
   if (BLEconnected) {
-    SimbleeBLE.send(radioBuffer, 20);
+    dataCharacteristic.writeValue(radioBuffer, 20);
   }
 }
 
@@ -940,7 +946,7 @@ boolean OpenBCI_Ganglion::eventSerial() {
     // send via BLE if available
     if (BLEconnected) {
       if ((millis() - timeLastPacketSent) > 15) {
-        SimbleeBLE.send(serialBuffer[bufferLevelCounter], serialIndex[bufferLevelCounter]);
+        dataCharacteristic.writeValue(serialBuffer[bufferLevelCounter], serialIndex[bufferLevelCounter]);
         bufferLevelCounter++;        // get ready for next buffered packet
         if (bufferLevelCounter == bufferLevel + 1) { // when we send all the packets
           serialBytesToSend = false;                    // put down bufferToSend flag
@@ -971,7 +977,7 @@ void OpenBCI_Ganglion::sendSerialBytesBlocking() {
   if (BLEconnected) {
     while (serialBytesToSend) {
       if ((millis() - timeLastPacketSent) > 15) {
-        SimbleeBLE.send(serialBuffer[bufferLevelCounter], serialIndex[bufferLevelCounter]);
+        dataCharacteristic.writeValue(serialBuffer[bufferLevelCounter], serialIndex[bufferLevelCounter]);
         bufferLevelCounter++;        // get ready for next buffered packet
         if (bufferLevelCounter == bufferLevel + 1) { // when we send all the packets
           //          Serial.println(serialBuffer[0][0]);
@@ -1334,13 +1340,13 @@ void OpenBCI_Ganglion::parseChar(char token) {
 // *************************************************************************************
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SIMBLEE FUNCTIONS  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-void SimbleeBLE_onConnect() {
+void onConnect(BLEDevice central) {
   ganglion.channelMask = 0x00000000;
   ganglion.BLEconnected = true;
   digitalWrite(LED,HIGH);
 }
 
-void SimbleeBLE_onDisconnect() {
+void onDisconnect(BLEDevice central) {
   ganglion.BLEconnected = false;
   if(!ganglion.writingToSD){
     ganglion.stopRunning();
@@ -1351,14 +1357,15 @@ void SimbleeBLE_onDisconnect() {
   }
   if(ganglion.requestForOTAenable){
     ganglion.requestForOTAenable = false;
-    ganglion.clearForOTA = true;
+    ganglion.clearForOTA = false; // No OTA on Impulse
   }
 }
 
-void SimbleeBLE_onReceive(char *data, int len) {
+void onReceive(BLEDevice central, BLECharacteristic characteristic) {
+  uint8_t val = controlCharacteristic.value();
   ganglion.BLEcharHead++;
   if(ganglion.BLEcharHead >19){ ganglion.BLEcharHead = 0; }
-  ganglion.BLEchar[ganglion.BLEcharHead] = data[0];
+  ganglion.BLEchar[ganglion.BLEcharHead] = val;
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<  END OF SIMBLEE FUNCTIONS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
